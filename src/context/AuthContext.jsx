@@ -1,24 +1,11 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
-const STORAGE_KEY = 'huddleup.auth.user.v1';
 
-export const AuthContext = createContext({
-  user: null,
-  isAuthenticated: false,
-  loading: false,
-  error: null,
-  // Placeholder API (overridden by provider)
-  loginUser: async () => {},
-  logoutUser: async () => {},
-});
-
-function safeParseJSON(value) {
-  try {
-    return JSON.parse(value);
-  } catch {
-    return null;
-  }
-}
+import {
+  AuthContext,
+  safeParseJSON,
+  STORAGE_KEY_HUDDLEUP_AUTH_USER_V1,
+} from './AuthContextCore.js';
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -27,25 +14,28 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     // Restore persisted session on refresh.
-    // Must not truncate localStorage; we simply read what was stored.
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
+    // Keep side-effects (localStorage reads/writes) outside render.
+    const restore = () => {
+      const raw = localStorage.getItem(STORAGE_KEY_HUDDLEUP_AUTH_USER_V1);
+      if (!raw) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
 
-    const parsed = safeParseJSON(raw);
-    if (!parsed) {
-      // If corrupted/unexpected shape, clear it rather than breaking app.
-      localStorage.removeItem(STORAGE_KEY);
-      setUser(null);
-      setLoading(false);
-      return;
-    }
+      const parsed = safeParseJSON(raw);
+      if (!parsed) {
+        localStorage.removeItem(STORAGE_KEY_HUDDLEUP_AUTH_USER_V1);
+        setUser(null);
+        setLoading(false);
+        return;
+      }
 
-    setUser(parsed);
-    setLoading(false);
+      setUser(parsed);
+      setLoading(false);
+    };
+
+    restore();
   }, []);
 
   const loginUser = useCallback(async (profile) => {
@@ -53,20 +43,19 @@ export function AuthProvider({ children }) {
     setLoading(true);
 
     try {
-      // profile can be any serializable user/profile object.
-      // Keep it generic for integration with CometChat or other auth later.
       const nextUser = profile ?? null;
 
       if (nextUser === null) {
-        // Treat falsy profile as a logout-like operation.
         setUser(null);
-        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(STORAGE_KEY_HUDDLEUP_AUTH_USER_V1);
         setLoading(false);
         return;
       }
 
-      // Persist to localStorage for session continuity.
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(nextUser));
+      localStorage.setItem(
+        STORAGE_KEY_HUDDLEUP_AUTH_USER_V1,
+        JSON.stringify(nextUser),
+      );
       setUser(nextUser);
       setLoading(false);
     } catch (e) {
@@ -81,7 +70,7 @@ export function AuthProvider({ children }) {
     setLoading(true);
 
     try {
-      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(STORAGE_KEY_HUDDLEUP_AUTH_USER_V1);
       setUser(null);
       setLoading(false);
     } catch (e) {
@@ -105,11 +94,5 @@ export function AuthProvider({ children }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return ctx;
-}
+
 
