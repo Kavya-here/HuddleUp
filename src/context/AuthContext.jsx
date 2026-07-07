@@ -1,98 +1,76 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useState, useEffect, useContext } from 'react';
 
+// 1. Create the Authentication Context
+export const AuthContext = createContext(null);
 
-import {
-  AuthContext,
-  safeParseJSON,
-  STORAGE_KEY_HUDDLEUP_AUTH_USER_V1,
-} from './AuthContextCore.js';
-
-export function AuthProvider({ children }) {
+// 2. Define the AuthProvider Wrapper
+export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Check if a user session is already saved on your browser
   useEffect(() => {
-    // Restore persisted session on refresh.
-    // Keep side-effects (localStorage reads/writes) outside render.
-    const restore = () => {
-      const raw = localStorage.getItem(STORAGE_KEY_HUDDLEUP_AUTH_USER_V1);
-      if (!raw) {
-        setUser(null);
-        setLoading(false);
-        return;
+    const storedUser = localStorage.getItem('huddleup_user');
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (e) {
+        console.error('Failed to parse stored user session:', e);
       }
-
-      const parsed = safeParseJSON(raw);
-      if (!parsed) {
-        localStorage.removeItem(STORAGE_KEY_HUDDLEUP_AUTH_USER_V1);
-        setUser(null);
-        setLoading(false);
-        return;
-      }
-
-      setUser(parsed);
-      setLoading(false);
-    };
-
-    restore();
+    }
+    setLoading(false);
   }, []);
 
-  const loginUser = useCallback(async (profile) => {
-    setError(null);
+  // Mock login function for local development
+  const loginUser = async (email, password) => {
     setLoading(true);
-
+    setError(null);
     try {
-      const nextUser = profile ?? null;
-
-      if (nextUser === null) {
-        setUser(null);
-        localStorage.removeItem(STORAGE_KEY_HUDDLEUP_AUTH_USER_V1);
-        setLoading(false);
-        return;
+      // For development, allow any email/password combo
+      if (email && password) {
+        const mockUser = {
+          uid: 'user_' + Math.random().toString(36).substr(2, 9),
+          email: email,
+          name: email.split('@')[0],
+          avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${email}`
+        };
+        setUser(mockUser);
+        localStorage.setItem('huddleup_user', JSON.stringify(mockUser));
+        return true;
+      } else {
+        throw new Error('Please fill in both email and password.');
       }
-
-      localStorage.setItem(
-        STORAGE_KEY_HUDDLEUP_AUTH_USER_V1,
-        JSON.stringify(nextUser),
-      );
-      setUser(nextUser);
-      setLoading(false);
-    } catch (e) {
-      const message = e instanceof Error ? e.message : 'Failed to login';
-      setError(message);
+    } catch (err) {
+      setError(err.message || 'Login failed');
+      return false;
+    } finally {
       setLoading(false);
     }
-  }, []);
+  };
 
-  const logoutUser = useCallback(async () => {
-    setError(null);
-    setLoading(true);
+  // Logout function
+  const logoutUser = () => {
+    setUser(null);
+    localStorage.removeItem('huddleup_user');
+  };
 
-    try {
-      localStorage.removeItem(STORAGE_KEY_HUDDLEUP_AUTH_USER_V1);
-      setUser(null);
-      setLoading(false);
-    } catch (e) {
-      const message = e instanceof Error ? e.message : 'Failed to logout';
-      setError(message);
-      setLoading(false);
-    }
-  }, []);
-
-  const value = useMemo(() => {
-    return {
-      user,
-      loading,
-      error,
-      isAuthenticated: Boolean(user),
-      loginUser,
-      logoutUser,
-    };
-  }, [user, loading, error, loginUser, logoutUser]);
+  const value = {
+    user,
+    loading,
+    error,
+    loginUser,
+    logoutUser
+  };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
+};
 
-
-
+// 3. Define and export the custom useAuth hook (This was missing!)
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};

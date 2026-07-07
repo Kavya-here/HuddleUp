@@ -10,9 +10,10 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // For now while testing, loginUser will let you through
     const success = await loginUser(email, password);
     if (success) {
-      navigate('/');
+      navigate('/dashboard'); // Fixed path to match App.jsx route
     }
   };
 
