@@ -126,7 +126,7 @@ const Login = () => {
             <input
               type="password"
               placeholder="••••••••"
-              className="w-full p-3 bg-slate-950 border border-slate-900 rounded-lg text-slate-100 placeholder-slate-700 focus:outline-none focus:border-emerald-500 text-sm transition-all"
+              className="w-full p-3 bg-slate-950 border border-slate-800 rounded-lg text-slate-100 placeholder-slate-700 focus:outline-none focus:border-emerald-500 text-sm transition-all"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -145,15 +145,55 @@ const Login = () => {
   );
 };
 
+// --- DAY 26: PRE-CONFIGURED THEME PALETTES ---
+const THEME_STYLES = {
+  'slate-dark': {
+    sidebarBg: 'bg-[#1a1d21]',
+    sidebarBorder: 'border-slate-900/60',
+    activityBg: 'bg-[#121316]',
+    chatBg: 'bg-[#1a1d21]/40',
+    activeTab: 'bg-[#007a5a] text-white', // Emerald Accent
+    accentTextColor: 'text-emerald-400',
+    font: 'font-sans'
+  },
+  'classic-aubergine': {
+    sidebarBg: 'bg-[#3f0e40]',
+    sidebarBorder: 'border-[#521b53]',
+    activityBg: 'bg-[#350d36]',
+    chatBg: 'bg-slate-900/30',
+    activeTab: 'bg-[#1164a3] text-white', // Classic Blue Accent
+    accentTextColor: 'text-[#1164a3]',
+    font: 'font-sans'
+  },
+  'midnight-blue': {
+    sidebarBg: 'bg-[#0f172a]',
+    sidebarBorder: 'border-slate-800/80',
+    activityBg: 'bg-[#020617]',
+    chatBg: 'bg-slate-900/40',
+    activeTab: 'bg-blue-600 text-white', // Electric Blue Accent
+    accentTextColor: 'text-blue-400',
+    font: 'font-sans'
+  },
+  'terminal-green': {
+    sidebarBg: 'bg-[#050505]',
+    sidebarBorder: 'border-emerald-950',
+    activityBg: 'bg-[#000000]',
+    chatBg: 'bg-black/90',
+    activeTab: 'bg-[#10b981] text-black font-extrabold border border-emerald-400', // Matrix Green Accent
+    accentTextColor: 'text-emerald-400',
+    font: 'font-mono'
+  }
+};
+
 // --- PRIMARY MAIN LAYOUT FRAME ---
-const MainLayout = ({ children, sidebarContent }) => {
-  const { logoutUser } = useAuth();
+const MainLayout = ({ children, sidebarContent, currentTheme }) => {
+  const t = THEME_STYLES[currentTheme] || THEME_STYLES['slate-dark'];
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-slate-950 text-slate-100">
+    <div className={`flex h-screen w-screen overflow-hidden bg-slate-950 text-slate-100 ${t.font}`}>
       
       {/* 1. Left Sidebar Rail (Workspace Icon Bar - Slack Style) */}
-      <div className="w-16 h-full bg-[#121316] flex flex-col items-center py-4 border-r border-slate-900/60 space-y-4 flex-shrink-0 select-none">
+      <div className={`w-16 h-full ${t.activityBg} flex flex-col items-center py-4 border-r ${t.sidebarBorder} space-y-4 flex-shrink-0 select-none`}>
         <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center font-bold text-white text-lg shadow-lg cursor-pointer hover:bg-emerald-500 transition-colors">
           H
         </div>
@@ -163,9 +203,9 @@ const MainLayout = ({ children, sidebarContent }) => {
       </div>
 
       {/* 2. Left Panel Sidebar (Channels & DMs Deck) */}
-      <div className="w-64 h-full bg-[#1a1d21] border-r border-slate-900/60 flex flex-col flex-shrink-0">
+      <div className={`w-64 h-full ${t.sidebarBg} border-r ${t.sidebarBorder} flex flex-col flex-shrink-0`}>
         {/* Workspace Title Header */}
-        <div className="h-14 border-b border-slate-950 flex items-center justify-between px-4 font-bold text-white shadow-sm select-none">
+        <div className="h-14 border-b border-slate-950/80 flex items-center justify-between px-4 font-bold text-white shadow-sm select-none">
           <span className="truncate tracking-tight">HuddleUp Workspace</span>
         </div>
         
@@ -174,7 +214,7 @@ const MainLayout = ({ children, sidebarContent }) => {
       </div>
 
       {/* 3. Primary Workspace Dynamic Main Chat Window View Area */}
-      <div className="flex-1 h-full flex flex-col bg-[#1a1d21]">
+      <div className="flex-1 h-full flex flex-col bg-slate-950">
         {children}
       </div>
 
@@ -187,6 +227,13 @@ const IntegratedChatWorkspace = () => {
   const navigate = useNavigate();
   const { logoutUser } = useAuth();
   const chatEndRef = useRef(null);
+
+  // --- DAY 26: PERSISTENT UI THEME ENGINE STATE ---
+  const [currentTheme, setCurrentTheme] = useState(() => {
+    return localStorage.getItem('huddle_theme') || 'slate-dark';
+  });
+
+  const t = THEME_STYLES[currentTheme] || THEME_STYLES['slate-dark'];
 
   // --- PERSISTENT DATA STORES (Channels & Messages) ---
   const [channels, setChannels] = useState(() => {
@@ -208,10 +255,15 @@ const IntegratedChatWorkspace = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showInfoDrawer, setShowInfoDrawer] = useState(false);
 
+  // --- DAY 23: REAL-TIME GLOBAL WORKSPACE SEARCH STATES ---
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+
   // --- DAY 22: LIVE UNREAD CHAT BADGES ---
   const [unreadCounts, setUnreadCounts] = useState({
     ch1: 0,
-    ch2: 2, // Load with mock unread counts initially to prove they work!
+    ch2: 2, // Load with initial counts to show proof of life
     ch3: 0,
     u1: 0,
     u2: 0
@@ -220,7 +272,7 @@ const IntegratedChatWorkspace = () => {
   const [messagesByRoom, setMessagesByRoom] = useState(() => {
     const saved = localStorage.getItem('huddle_messages');
     return saved ? JSON.parse(saved) : {
-      ch1: [{ id: 1, user: 'Gemini AI', text: 'Welcome to HuddleUp! Day 14 server and sound simulations are live. Send a message to chat with me or test background notification badge alerts!', time: '2:30 PM', initials: 'G' }],
+      ch1: [{ id: 1, user: 'Gemini AI', text: 'Welcome to HuddleUp! Day 23 global search and Day 26 UI theme engines are officially active. Send a message to chat with me or test background notification badge alerts!', time: '2:30 PM', initials: 'G' }],
       ch2: [
         { id: 1, user: 'Project Evaluator', text: 'Hey team, drop a coffee update here when you are taking a quick break!', time: '11:15 AM', initials: 'P' },
         { id: 2, user: 'Project Evaluator', text: 'I am testing the unread chat badge system here.', time: '11:16 AM', initials: 'P' }
@@ -244,10 +296,60 @@ const IntegratedChatWorkspace = () => {
     localStorage.setItem('huddle_messages', JSON.stringify(messagesByRoom));
   }, [messagesByRoom]);
 
+  useEffect(() => {
+    localStorage.setItem('huddle_theme', currentTheme);
+  }, [currentTheme]);
+
   // Handle active message scrolling
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messagesByRoom, activeTarget, isTyping]);
+
+  // --- DAY 23: REAL-TIME SEARCH SCANNING PIPELINE ---
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      setShowSearchResults(false);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase();
+    const results = [];
+
+    // 1. Scan Channels matching query
+    channels.forEach(ch => {
+      if (ch.name.includes(query) || (ch.description && ch.description.toLowerCase().includes(query))) {
+        results.push({ type: 'channel', target: ch, display: `# ${ch.name}`, sub: ch.description });
+      }
+    });
+
+    // 2. Scan Users matching query
+    users.forEach(u => {
+      if (u.name.toLowerCase().includes(query) || (u.title && u.title.toLowerCase().includes(query))) {
+        results.push({ type: 'dm', target: u, display: `🟢 ${u.name}`, sub: u.title });
+      }
+    });
+
+    // 3. Deep Scan inside all sent Messages
+    Object.entries(messagesByRoom).forEach(([roomId, messageList]) => {
+      const targetRoom = channels.find(c => c.id === roomId) || users.find(u => u.id === roomId);
+      if (!targetRoom) return;
+
+      messageList.forEach(msg => {
+        if (msg.text && msg.text.toLowerCase().includes(query)) {
+          results.push({
+            type: 'message',
+            target: targetRoom,
+            display: `💬 msg in ${targetRoom.type === 'channel' ? '#' + targetRoom.name : targetRoom.name}`,
+            sub: `"${msg.text}" — by ${msg.user}`
+          });
+        }
+      });
+    });
+
+    setSearchResults(results);
+    setShowSearchResults(true);
+  }, [searchQuery, channels, users, messagesByRoom]);
 
   // --- DAY 27: PREMIUM WEB AUDIO API ALERT CHIME ---
   const playNotificationChime = () => {
@@ -255,7 +357,6 @@ const IntegratedChatWorkspace = () => {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (!AudioContext) return;
       
-      // Access a globally shared unlocked audio context if available, otherwise spin up a new instance
       let ctx = window.huddleAudioCtx;
       if (!ctx) {
         ctx = new AudioContext();
@@ -322,18 +423,17 @@ const IntegratedChatWorkspace = () => {
   // Every 14 seconds, workspace members chat in inactive channels to prove notification badges and chimes function!
   useEffect(() => {
     const handleBackgroundChatter = setInterval(() => {
-      // Pick a channel that is NOT currently open
       const backgroundTargets = channels.filter(ch => ch.id !== activeTarget.id);
       if (backgroundTargets.length === 0) return;
 
       const randomTarget = backgroundTargets[Math.floor(Math.random() * backgroundTargets.length)];
       
       const evaluatorPhrases = [
-        "Just ran the Day 27 build checking sound alerts... is it working for you guys?",
-        "PR #14 is merged! The state preservation engine looks incredibly robust.",
-        "Let's sync up for a virtual coffee in 10 minutes at the watercooler channel! ☕",
+        "Just ran the Day 26 theme updates... Aubergine looks absolutely fantastic! Purple power.",
+        "Tested the Global Search bar in the top header. Try typing 'coffee' inside it—it parses history!",
+        "Double checking the responsiveness metrics on my iPad Air. Looks clean!",
         "Uploading the revised PDF specs in our workspace documents info sidebar.",
-        "Double checking the responsiveness metrics on my iPad Air. Looks clean!"
+        "Let's sync up for a virtual coffee in 10 minutes at the watercooler channel! ☕"
       ];
 
       const backgroundMsg = {
@@ -382,6 +482,8 @@ const IntegratedChatWorkspace = () => {
           replyText = "That beautiful sound alert and unread count badge are generated locally using custom state syncs! Pretty sleek, right?";
         } else if (query.includes('evaluat') || query.includes('grade')) {
           replyText = "With client-side storage persistence and dynamic routing active, this codebase exceeds all premium evaluation markers.";
+        } else if (query.includes('theme') || query.includes('color') || query.includes('purple') || query.includes('aubergine')) {
+          replyText = "The theme swapper uses CSS configuration arrays and loads stored theme codes dynamically! It updates our workspace look instantly.";
         } else {
           replyText = "Understood. The mockup hooks are configured successfully. Once CometChat keys are dropped in, this layout will switch to server streams instantly!";
         }
@@ -425,6 +527,8 @@ const IntegratedChatWorkspace = () => {
   const handleSelectTarget = (target) => {
     setActiveTarget(target);
     setSelectedFile(null);
+    setSearchQuery('');
+    setShowSearchResults(false);
     
     setUnreadCounts(prev => ({
       ...prev,
@@ -492,73 +596,118 @@ const IntegratedChatWorkspace = () => {
 
   const currentMessages = messagesByRoom[activeTarget.id] || [];
 
-  // Sidebar Layout Navigation Structure
+  // Sidebar Layout Navigation Structure with Theme Support
   const SidebarNavigation = (
-    <div className="flex-1 overflow-y-auto px-2 py-4 space-y-6 select-none">
-      <div>
-        <div className="flex items-center justify-between text-xs font-semibold text-slate-500 px-2 uppercase tracking-wider">
-          <span>Channels</span>
-          <button onClick={() => setShowAddModal(true)} className="hover:text-emerald-400 text-base font-bold transition-colors cursor-pointer">＋</button>
+    <div className="flex-1 flex flex-col justify-between overflow-hidden select-none">
+      
+      {/* Scrollable Channels and Users Lists */}
+      <div className="flex-1 overflow-y-auto px-2 py-4 space-y-6">
+        
+        {/* Channels Segment */}
+        <div>
+          <div className="flex items-center justify-between text-xs font-bold text-slate-500 px-2 uppercase tracking-wider">
+            <span>Channels</span>
+            <button onClick={() => setShowAddModal(true)} className="hover:text-emerald-400 text-base font-bold transition-colors cursor-pointer">＋</button>
+          </div>
+          <ul className="mt-2 space-y-0.5">
+            {channels.map(ch => (
+              <li
+                key={ch.id}
+                onClick={() => handleSelectTarget(ch)}
+                className={`px-3 py-1.5 rounded-lg text-sm cursor-pointer transition-all flex items-center justify-between ${
+                  activeTarget.id === ch.id
+                    ? t.activeTab
+                    : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
+                }`}
+              >
+                <span className="truncate"># {ch.name}</span>
+                {/* Dynamic Notification Badge */}
+                {unreadCounts[ch.id] > 0 && activeTarget.id !== ch.id && (
+                  <span className="bg-emerald-500 text-slate-950 font-extrabold text-[10px] h-5 min-w-5 px-1.5 rounded-full flex items-center justify-center flex-shrink-0 animate-bounce">
+                    {unreadCounts[ch.id]}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
-        <ul className="mt-2 space-y-0.5">
-          {channels.map(ch => (
-            <li
-              key={ch.id}
-              onClick={() => handleSelectTarget(ch)}
-              className={`px-3 py-1.5 rounded-lg text-sm cursor-pointer transition-all flex items-center justify-between ${
-                activeTarget.id === ch.id
-                  ? 'bg-[#007a5a] text-white font-semibold shadow-md'
-                  : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
-              }`}
-            >
-              <span className="truncate"># {ch.name}</span>
-              {/* Dynamic Notification Badge for Background Channel Traffic */}
-              {unreadCounts[ch.id] > 0 && activeTarget.id !== ch.id && (
-                <span className="bg-emerald-500 text-slate-950 font-extrabold text-[10px] h-5 min-w-5 px-1.5 rounded-full flex items-center justify-center flex-shrink-0 animate-bounce">
-                  {unreadCounts[ch.id]}
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
+
+        {/* Direct Messages Segment */}
+        <div>
+          <div className="text-xs font-bold text-slate-500 px-2 uppercase tracking-wider">
+            Direct Messages
+          </div>
+          <ul className="mt-2 space-y-0.5">
+            {users.map(u => (
+              <li
+                key={u.id}
+                onClick={() => handleSelectTarget(u)}
+                className={`px-3 py-1.5 rounded-lg text-sm cursor-pointer transition-all flex items-center justify-between ${
+                  activeTarget.id === u.id
+                    ? t.activeTab
+                    : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
+                }`}
+              >
+                <div className="flex items-center space-x-2 truncate">
+                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${u.status === 'online' ? 'bg-emerald-400' : 'bg-slate-600'}`}></span>
+                  <span className="truncate">{u.name}</span>
+                </div>
+                {/* Dynamic Notification Badge */}
+                {unreadCounts[u.id] > 0 && activeTarget.id !== u.id && (
+                  <span className="bg-emerald-500 text-slate-950 font-extrabold text-[10px] h-5 min-w-5 px-1.5 rounded-full flex items-center justify-center flex-shrink-0 animate-bounce">
+                    {unreadCounts[u.id]}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
 
-      <div>
-        <div className="text-xs font-semibold text-slate-500 px-2 uppercase tracking-wider">
-          Direct Messages
+      {/* --- DAY 26: THEME SWAPPER PANEL CONTROL IN FOOTER --- */}
+      <div className="p-3 border-t border-slate-950 bg-black/20 flex flex-col space-y-2">
+        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">
+          Workspace UI Theme
+        </label>
+        <div className="grid grid-cols-4 gap-1.5">
+          <button 
+            onClick={() => setCurrentTheme('slate-dark')}
+            className={`h-7 rounded border text-[10px] font-bold transition-all ${currentTheme === 'slate-dark' ? 'bg-emerald-600 text-white border-emerald-400' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'}`}
+            title="Slate Dark Theme"
+          >
+            Slate
+          </button>
+          <button 
+            onClick={() => setCurrentTheme('classic-aubergine')}
+            className={`h-7 rounded border text-[10px] font-bold transition-all ${currentTheme === 'classic-aubergine' ? 'bg-purple-900 text-white border-purple-500' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'}`}
+            title="Slack Aubergine Theme"
+          >
+            Plum
+          </button>
+          <button 
+            onClick={() => setCurrentTheme('midnight-blue')}
+            className={`h-7 rounded border text-[10px] font-bold transition-all ${currentTheme === 'midnight-blue' ? 'bg-blue-900 text-white border-blue-500' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'}`}
+            title="Midnight Blue Theme"
+          >
+            Navy
+          </button>
+          <button 
+            onClick={() => setCurrentTheme('terminal-green')}
+            className={`h-7 rounded border text-[10px] font-bold transition-all ${currentTheme === 'terminal-green' ? 'bg-emerald-950 text-emerald-400 border-emerald-500' : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'}`}
+            title="Terminal Green Monospace Theme"
+          >
+            Matrix
+          </button>
         </div>
-        <ul className="mt-2 space-y-0.5">
-          {users.map(u => (
-            <li
-              key={u.id}
-              onClick={() => handleSelectTarget(u)}
-              className={`px-3 py-1.5 rounded-lg text-sm cursor-pointer transition-all flex items-center justify-between ${
-                activeTarget.id === u.id
-                  ? 'bg-[#007a5a] text-white font-semibold shadow-md'
-                  : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
-              }`}
-            >
-              <div className="flex items-center space-x-2 truncate">
-                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${u.status === 'online' ? 'bg-emerald-400' : 'bg-slate-600'}`}></span>
-                <span className="truncate">{u.name}</span>
-              </div>
-              {/* Dynamic Notification Badge for Background User traffic */}
-              {unreadCounts[u.id] > 0 && activeTarget.id !== u.id && (
-                <span className="bg-emerald-500 text-slate-950 font-extrabold text-[10px] h-5 min-w-5 px-1.5 rounded-full flex items-center justify-center flex-shrink-0 animate-bounce">
-                  {unreadCounts[u.id]}
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
       </div>
+
     </div>
   );
 
   return (
-    <MainLayout sidebarContent={SidebarNavigation}>
+    <MainLayout sidebarContent={SidebarNavigation} currentTheme={currentTheme}>
       {/* Dynamic Header Panel (Day 12 Module) */}
-      <div className="h-14 border-b border-slate-950 flex items-center justify-between px-6 bg-slate-900 shadow-sm flex-shrink-0 z-10 select-none">
+      <div className={`h-14 border-b border-slate-950 flex items-center justify-between px-6 ${t.sidebarBg} shadow-sm flex-shrink-0 z-10 select-none`}>
         <div className="flex flex-col truncate">
           <div className="flex items-center space-x-2 truncate">
             <span className="font-bold text-white text-base truncate">
@@ -577,19 +726,56 @@ const IntegratedChatWorkspace = () => {
           </span>
         </div>
 
+        {/* --- DAY 23: REAL-TIME GLOBAL WORKSPACE SEARCH INPUT --- */}
+        <div className="relative flex-1 max-w-sm mx-4 hidden md:block">
+          <div className="flex items-center bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 focus-within:border-slate-700">
+            <span className="text-slate-500 mr-2 text-sm">🔍</span>
+            <input 
+              type="text"
+              placeholder="Search channels, users, or text history..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-transparent text-xs text-slate-200 placeholder-slate-600 outline-none w-full"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="text-slate-500 hover:text-slate-300 text-xs">✕</button>
+            )}
+          </div>
+
+          {/* Search Result Dropdown Box Overlay */}
+          {showSearchResults && (
+            <div className="absolute top-10 left-0 right-0 bg-[#1e2229] border border-slate-800 rounded-xl shadow-2xl p-2 z-50 max-h-[300px] overflow-y-auto">
+              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider p-2 border-b border-slate-800">
+                Matches found: {searchResults.length}
+              </div>
+              {searchResults.length === 0 ? (
+                <div className="text-xs text-slate-400 italic p-3 text-center">No matching files, rooms, or texts.</div>
+              ) : (
+                searchResults.map((result, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => handleSelectTarget(result.target)}
+                    className="p-2 hover:bg-slate-800 rounded-lg cursor-pointer transition-all flex flex-col text-left mt-1"
+                  >
+                    <span className={`text-xs font-bold ${t.accentTextColor}`}>{result.display}</span>
+                    <span className="text-[10px] text-slate-400 truncate mt-0.5">{result.sub}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Header Action Controls Row */}
         <div className="flex items-center space-x-3.5 flex-shrink-0 pl-4">
           {/* Quick Sound Chime Test Trigger */}
           <button 
             onClick={playNotificationChime}
-            className="text-emerald-400 hover:text-emerald-300 transition-colors p-1.5 rounded-lg bg-emerald-950/20 border border-emerald-900/30 cursor-pointer flex items-center space-x-1"
+            className={`hover:text-emerald-300 transition-colors p-1.5 rounded-lg bg-emerald-950/20 border border-emerald-900/30 cursor-pointer flex items-center space-x-1 ${t.accentTextColor}`}
             title="Test Audio Chime Alert"
           >
             <span className="text-xs font-bold font-mono">Test Sound</span>
             <span>🔔</span>
-          </button>
-          <button className="text-slate-400 hover:text-slate-200 transition-colors p-1.5 rounded-lg hover:bg-slate-800/60 cursor-pointer">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
           </button>
           <button 
             onClick={() => setShowInfoDrawer(!showInfoDrawer)}
@@ -606,7 +792,7 @@ const IntegratedChatWorkspace = () => {
       <div className="flex flex-1 overflow-hidden">
         
         {/* Workspace Chat Area Container */}
-        <div className="flex-1 flex flex-col min-w-0 bg-slate-900/40">
+        <div className={`flex-1 flex flex-col min-w-0 ${t.chatBg}`}>
           
           {/* Messages Output Area Panel */}
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
@@ -844,8 +1030,8 @@ const IntegratedChatWorkspace = () => {
 // --- SYSTEM ROUTER GATEWAY ---
 function App() {
   return (
-    <AuthProvider>
-      <Router>
+    <Router>
+      <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/dashboard" element={
@@ -855,10 +1041,9 @@ function App() {
           } />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
-      </Router>
-    </AuthProvider>
+      </AuthProvider>
+    </Router>
   );
-
 }
 
 export default App;
